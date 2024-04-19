@@ -35,11 +35,11 @@ class Brain_Model:
         embeddings = OpenAIEmbeddings()
         document_search = FAISS.from_documents(all_splits, embeddings)
 
-        self.chain = ConversationalRetrievalChain.from_llm(openAI(temperature=0, model='gpt-3.5-turbo-instruct'), document_search.as_retriever(), return_source_documents=True)
+        self.chain = ConversationalRetrievalChain.from_llm(openAI(temperature=0, model='gpt-3.5-turbo'), document_search.as_retriever(), return_source_documents=True)
         
     def in_scope_search(self, question: str) -> NoReturn:
        # attaching chat history
-       result = self.chain.invoke({"question": question, "chat_history": self.memory.get_memory()})
+       result = self.chain({"question": question, "chat_history": self.memory.get_memory()})
        
        if not any(word in result['answer'] for word in ['context','do not know',"don't know",'do not have']):
             # self.memory.set_memory(ques=question,ans=result['answer'])
@@ -52,7 +52,7 @@ class Brain_Model:
        
     def out_scope_search(self, question: str) -> None:
         response = OpenAI().chat.completions.create(
-            model='gpt-3.5-turbo-instruct',
+            model='gpt-3.5-turbo',
             messages=[
                 {"role": "system", "content": "You are a helpful FAQ assistant."},
                 {"role": "user", "content": question},
