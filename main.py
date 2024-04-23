@@ -10,6 +10,9 @@ memory: Memory = Memory()
 crawler: Web_Loader = Web_Loader(config=config)
 brain: Brain_Model = Brain_Model(config=config, crawler=crawler, memory=memory)
 
-if __name__ == '__main__':
-    while True:
-        brain.in_scope_search(str(input("\nWhat to search? ")))
+def search(query: str) -> str:
+    return brain.in_scope_search(query)
+
+# if __name__ == '__main__':
+#     while True:
+#         brain.in_scope_search(str(input("\nWhat to search? ")))

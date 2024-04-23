@@ -12,7 +12,9 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores.faiss import FAISS
 from langchain.document_loaders.web_base import WebBaseLoader
 from langchain_openai import OpenAI as openAI
-from langchain.chains import ConversationalRetrievalChain
+from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
 
 
 class Brain_Model:
@@ -33,33 +35,48 @@ class Brain_Model:
         all_splits = text_splitter.split_documents(document)
         
         embeddings = OpenAIEmbeddings()
-        document_search = FAISS.from_documents(all_splits, embeddings)
-
-        self.chain = ConversationalRetrievalChain.from_llm(openAI(temperature=0, model='gpt-3.5-turbo-instruct'), document_search.as_retriever(), return_source_documents=True)
+        self.document_search = FAISS.from_documents(all_splits, embeddings)
         
-    def in_scope_search(self, question: str) -> NoReturn:
-       # attaching chat history
-       result = self.chain.invoke({"question": question, "chat_history": self.memory.get_memory()})
-       
-       if not any(word in result['answer'] for word in ['context','do not know',"don't know",'do not have']):
-            # self.memory.set_memory(ques=question,ans=result['answer'])
-            print('\n'+result['answer'])
-            return
-       else:
-            self.out_scope_search(question=question)
-            return
-       
-       
-    def out_scope_search(self, question: str) -> None:
+    def in_scope_search(self, question: str) -> str:
+        retriever = self.document_search.as_retriever(search_type="similarity", search_kwargs={"k": 1})
+        prompt = self.question_prompt_template()
+
+        rag_chain = (
+                    {"context": retriever, "question": RunnablePassthrough()}
+                    | prompt
+                    | openAI(temperature=0, model='gpt-3.5-turbo-instruct')
+                    | StrOutputParser()
+                )
+        
+        result = rag_chain.invoke(question)
+        
+        if not any(word in result for word in ['context','do not know',"don't know",'do not have']):
+            return result
+        else:
+            return self.out_scope_search(question=question)
+              
+    def out_scope_search(self, question: str) -> str:
         response = OpenAI().chat.completions.create(
             model='gpt-3.5-turbo-instruct',
             messages=[
-                {"role": "system", "content": "You are a helpful FAQ assistant."},
                 {"role": "user", "content": question},
             ]
         )
         
-        print(response.choices[0].message.content)
+        return response.choices[0].message.content
         
+    def question_prompt_template(self) -> PromptTemplate:
+        template = """Answer the question as precise as possible using the provided context.
+        If you don't know the answer, just say that you don't know, don't try to make up an answer. 
+        You are a helpful university FAQ assistant.
+        
+        CONTEXT: {context}
+        
+        QUESTION: {question}
+        
+        ANSWER:
+        """
+        
+        return PromptTemplate(template=template, input_variables=["context", "question"])  
 
         

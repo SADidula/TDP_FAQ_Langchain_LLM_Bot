@@ -1,6 +1,5 @@
 from typing import NoReturn
 
-
 class Memory:
     def __init__(self) -> NoReturn:
         self.memory = []
