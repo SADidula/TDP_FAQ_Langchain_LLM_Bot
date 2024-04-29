@@ -37,9 +37,34 @@ if query := st.chat_input("Please ask your question here:"):
  
     # We create a new chat message and launch the "chain" for the answer
     with st.chat_message("assistant", avatar=bot_logo):
-        result = bot.search(query=query)
-        typewriter(text=result, speed=100)
+        # response, recommendations = bot.search(query)
+        response = bot.search(query)
+        typewriter(text=response, speed=100)
+        
+    st.session_state.messages.append({"role": "bot", "content": response})
+    
+        # Get recommendations based on the user's query
+    # recommendations = bot.get_recommendations(query=query)
+
+    # # Display the recommendations
+    # st.write("You may also be interested in the following FAQs:")
+    # for i, recommendation in enumerate(recommendations, start=1):
+    #     st.write(f"{i}. {recommendation}")
  
-    # We also add the answer to the messages history
-    st.session_state.messages.append({"role": "bot", "content": result})
+    # Display the recommended questions as clickable buttons
+# if recommendations:
+#     st.markdown("**Recommended Questions:**")
+#     for rec in recommendations:
+#         if st.button(rec):
+#             # When the button is clicked, add the question to the chat input
+#             st.session_state.messages.append({"role": "user", "content": rec})
+#             with st.chat_message("user"):
+#                 st.markdown(rec)
+#             # Process the user's query and show the response
+#             with st.chat_message("assistant", avatar=bot_logo):
+#                 response, new_recommendations = bot.search(rec)
+#                 typewriter(text=response, speed=100)
+#             # Update the recommendations with new ones if available
+#             if new_recommendations:
+#                 recommendations = new_recommendations
     
