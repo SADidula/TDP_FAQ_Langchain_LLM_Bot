@@ -8,7 +8,7 @@ from models.web_loader_model import Web_Loader
 from models.memory_model import Memory
 from openai import OpenAI
 
-from tfIdfInheritVectorizer.feature_extraction.vectorizer import TFIDFVectorizer
+# from tfIdfInheritVectorizer.feature_extraction.vectorizer import TFIDFVectorizer
 from langchain_openai import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores.faiss import FAISS
