@@ -24,6 +24,7 @@ class Brain_Model:
     # init api
     def __init__(self, config: Configurator, crawler: Web_Loader, memory: Memory) -> NoReturn:
         self.memory = memory
+        self.model: str = 'gpt-3.5-turbo-instruct'
         
         # grabbing and setting api key
         api_key: str = config.get_configurations_value('llm configurations','api_key')
@@ -43,13 +44,13 @@ class Brain_Model:
         self.document_search = FAISS.from_documents(all_splits, embeddings)
         
     def in_scope_search(self, question: str) -> str:
-        retriever = self.document_search.as_retriever(search_type="similarity", search_kwargs={"k": 1})
+        retriever = self.document_search.as_retriever(search_type="similarity",search_kwargs={'k': 6, 'lambda_mult': 0.25, 'score_threshold': 0.85})
         prompt = self.question_prompt_template()
 
         rag_chain = (
                     {"context": retriever, "question": RunnablePassthrough()}
                     | prompt
-                    | openAI(temperature=0, model='gpt-3.5-turbo-instruct')
+                    | openAI(temperature=0, model=self.model)
                     | StrOutputParser()
                 )
         
@@ -62,7 +63,7 @@ class Brain_Model:
               
     def out_scope_search(self, question: str) -> str:
         response = OpenAI().chat.completions.create(
-            model='gpt-3.5-turbo-instruct',
+            model=self.model,
             messages=[
                 {"role": "user", "content": question},
             ]
