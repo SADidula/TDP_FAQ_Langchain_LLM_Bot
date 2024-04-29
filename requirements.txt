@@ -3,3 +3,6 @@ langchain==0.1.15
 langchain-openai==0.1.2
 langchain-community==0.0.32
 tfIdfInheritVectorizer==0.1
+faiss-gpu==1.7.2
+faiss-cpu==1.8.0
+scikit-learn==1.4.2
