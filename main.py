@@ -1,7 +1,6 @@
 from typing import NoReturn, Tuple
 import os
 import wave
-import pyaudio
 
 from models.brain_model import  Brain
 from models.web_loader_model import  Web_Loader
