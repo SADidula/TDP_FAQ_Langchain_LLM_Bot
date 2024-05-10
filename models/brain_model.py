@@ -19,7 +19,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 
 
-class Brain_Model:
+class Brain:
 
     # init api
     def __init__(self, config: Configurator, crawler: Web_Loader, memory: Memory) -> NoReturn:
@@ -56,10 +56,7 @@ class Brain_Model:
         
         result = rag_chain.invoke(question)
         
-        if not any(word in result for word in ['context','do not know',"don't know",'do not have']):
-            return result
-        else:
-            return self.out_scope_search(question=question)
+        return result
               
     def out_scope_search(self, question: str) -> str:
         response = OpenAI().chat.completions.create(
@@ -70,49 +67,11 @@ class Brain_Model:
         )
         
         return response.choices[0].message.content
-        
-    # def get_recommendations(self, context: str) -> list:
-    #     # Use your document search to retrieve relevant contexts
-    #     retriever = self.document_search.as_retriever(search_type="similarity", search_kwargs={"k": 5})
-    #     similar_contexts = retriever(context)
-
-    #     # Extract questions from similar contexts
-    #     recommended_questions = []
-    #     for similar_context in similar_contexts:
-    #         recommended_questions.extend(self.memory.get_questions(similar_context))  # Assuming memory stores questions for contexts
-
-    #     # Remove duplicates and limit the number of recommendations
-    #     recommended_questions = list(set(recommended_questions))[:5]  # Adjust the number as needed
-
-    #     # If there are not enough recommendations, randomly sample from the memory
-    #     while len(recommended_questions) < 5:
-    #         random_question = random.choice(self.memory.get_all_questions())
-    #         recommended_questions.append(random_question)
-
-    #     return recommended_questions
-    
-    # def get_recommendations(self, question: str, num_recommendations: int = 3) -> list[str]:
-    #     # Calculate TF-IDF vectors for all FAQs
-    #     vectorizer = TfidfVectorizer()
-    #     faqs = self.memory.get_memory()
-    #     tfidf_matrix = vectorizer.fit_transform([faq[0] for faq in faqs])
-
-    #     # Calculate cosine similarity between user's question and all FAQs
-    #     query_vector = vectorizer.transform([question])
-    #     cosine_similarities = linear_kernel(query_vector, tfidf_matrix).flatten()
-
-    #     # Get indices of top N most similar FAQs
-    #     similar_indices = cosine_similarities.argsort()[:-num_recommendations-1:-1]
-
-    #     # Get the actual FAQs for the top N indices
-    #     recommendations = [faqs[i][0] for i in similar_indices]
-
-    #     return recommendations
     
     def question_prompt_template(self) -> PromptTemplate:
         template = """Answer the question as precise as possible using the provided context.
-        If you don't know the answer, just say that you don't know, don't try to make up an answer. 
-        You are a helpful university FAQ assistant.
+        If you don't know the answer, just say that you answer is not related to the FAQs and make up the answer for the question. 
+        You are a helpful university assistant.
         
         CONTEXT: {context}
         

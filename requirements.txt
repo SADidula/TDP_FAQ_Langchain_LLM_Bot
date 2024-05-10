@@ -7,3 +7,4 @@ faiss-gpu==1.7.2
 faiss-cpu==1.8.0
 scikit-learn==1.4.2
 streamlit==1.33.0
+trubrics==1.6.2
