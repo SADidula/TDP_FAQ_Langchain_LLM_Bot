@@ -27,13 +27,15 @@ st.caption("🚀 your intellegent chatbot powered by OpenAI")
  
 # URL for the logo of the assistant bot
 # We need it as a separate variable because it's used in multiple places
-bot_logo = 'https://pbs.twimg.com/profile_images/1739538983112048640/4NzIg1h6_400x400.jpg'
+# bot_logo = 'https://pbs.twimg.com/profile_images/1739538983112048640/4NzIg1h6_400x400.jpg'
+bot_logo = "images/assistant.jpeg"
+user_logo = "images/user.jpeg"
  
 # We use st.session_state and fill in the st.session_state.messages list
 # It's empty in the beginning, so we add the first message from the bot
 if 'messages' not in st.session_state:
     st.session_state['messages'] = [{"role": "bot",
-                                    "content": "Hello, how can I help?"}]
+                                    "content": "Welcome to Swinburne University Online!\nLet me know if I can help with anything today."}]
     st.session_state['recommendation_clicked'] = False
     st.session_state['selected_recommendation'] = ""
     
@@ -42,8 +44,8 @@ for message in st.session_state['messages']:
     if message["role"] == 'bot':
         with st.chat_message(message["role"], avatar=bot_logo):
             st.markdown(message["content"])
-    else:
-        with st.chat_message(message["role"]):
+    elif message['role'] == 'user':
+        with st.chat_message(message["role"], avatar=user_logo):
             st.markdown(message["content"])
             
             # Sidebar button to end chat
@@ -72,31 +74,26 @@ if st.sidebar.button("End Chat"):
  
 if query := st.chat_input("Please ask your question here:"):
     st.session_state.messages.append({"role": "user", "content": query})
-    with st.chat_message("user"):
+    with st.chat_message("user", avatar=user_logo):
         st.markdown(query)
 
-    with st.spinner('Generating response....'):
-        result = bot.search(query)
-        
-    with st.spinner('Generating recommendations....'):
-        recommendations = bot.get_recommendations(query)
-        
-    with st.spinner('Generating voice....'):
-        voice = bot.get_voice_response(response=result)
-
     with st.chat_message("assistant", avatar=bot_logo):
-        typewriter(text=result, speed=100)
-        if recommendations:  
+        with st.spinner('Generating response....'):
+            result = bot.search(query)
+            typewriter(text=result, speed=100)
+
+        with st.spinner('Generating recommendations....'):
+            recommendations = bot.get_recommendations(query)
             st.markdown("**Recommended Questions:**")
-            for rec in recommendations:
+            for rec in recommendations: 
                 if st.button(rec, on_click=on_recommendation_click, args=(rec,)):  # Create clickable button for each recommendation
                     pass
                 
-        # Display the response audio
-        if voice:  
+        with st.spinner('Generating voice....'):
+            voice = bot.get_voice_response(response=result)
             st.markdown("**Voice Answer:**")
             st.audio(voice, format='audio/wav') 
-                
+                  
     st.session_state.messages.append({"role": "bot", "content": result})
    
 # If a recommendation button is clicked, automatically send it as a new question and display response
@@ -105,23 +102,26 @@ if st.session_state.recommendation_clicked:
     query = st.session_state.selected_recommendation
     st.session_state.messages.append({"role": "user", "content": query})
     
-    with st.chat_message("user"):
-        st.markdown(query)# Show the selected recommendation in the chat
-        
-    with st.spinner('Generating response....'):
-        result = bot.search(query)
-        
-    with st.spinner('Generating recommendations....'):
-        recommendations = bot.get_recommendations(query)
-        
-    with st.spinner('Generating voice....'):
-        voice = bot.get_voice_response(response=result)
+    with st.chat_message("user", avatar=user_logo):
+        st.markdown(query)
 
     with st.chat_message("assistant", avatar=bot_logo):
-        typewriter(text=result, speed=100)
-        # Display the response audio
-        st.audio(voice, format='audio/wav') 
-        
+        with st.spinner('Generating response....'):
+            result = bot.search(query)
+            typewriter(text=result, speed=100)
+
+        with st.spinner('Generating recommendations....'):
+            recommendations = bot.get_recommendations(query)
+            st.markdown("**Recommended Questions:**")
+            for rec in recommendations: 
+                if st.button(rec, on_click=on_recommendation_click, args=(rec,)):  # Create clickable button for each recommendation
+                    pass
+                
+        with st.spinner('Generating voice....'):
+            voice = bot.get_voice_response(response=result)
+            st.markdown("**Voice Answer:**")
+            st.audio(voice, format='audio/wav') 
+                  
     st.session_state.messages.append({"role": "bot", "content": original_question})
-    st.session_state.messages.append({"role": "bot", "content": result})
+    st.session_state.messages.append({"role": "bot", "content": result}) 
     st.session_state.recommendation_clicked = False  # Reset recommendation clicked state

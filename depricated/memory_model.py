@@ -1,5 +1,6 @@
 from typing import NoReturn
 
+@DeprecationWarning
 class Memory:
     def __init__(self) -> NoReturn:
         self.memory = []

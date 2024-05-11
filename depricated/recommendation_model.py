@@ -1,5 +1,5 @@
 import os
-from models.memory_model import Memory
+from depricated.memory_model import Memory
 from models.configurations import Configurator
 
 from langchain.chat_models import ChatOpenAI
@@ -8,6 +8,7 @@ from langchain_core.prompts import PromptTemplate, ChatPromptTemplate, HumanMess
 from langchain.chains import LLMChain
 from langchain_community.chat_models import ChatOpenAI
 
+@DeprecationWarning
 class Recommendation:
     def __init__(self, config: Configurator, memory: Memory):
         self.memory = memory
