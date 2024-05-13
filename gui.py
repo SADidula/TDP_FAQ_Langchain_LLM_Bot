@@ -1,127 +1,182 @@
-import main as bot
 import streamlit as st
-import trubrics
 import time
+import main as bot
 
-def typewriter(text: str, speed: int):
-    # tokens = text.split()
-    container = st.empty()
-    for index in range(len(text) + 1):
-        curr_full_text: str = "".join(text[:index])
-        container.markdown(curr_full_text)
-        time.sleep(1/speed)
+class GUI:    
+    def __init__(self) -> None: 
         
-# Function to handle recommendation button click
-def on_recommendation_click(rec):
-    st.session_state.recommendation_clicked = True
-    st.session_state.selected_recommendation = rec
+        self.isRecommended: bool = False
+        self.isTTS: bool = False
+        self.isSTT: bool = False
+        self.recommendations: list[str] = []
+        self.result = ""
+      
+        self.bot_logo = "images/assistant.jpeg"
+        self.user_logo = "images/user.jpeg"
+
+        # self.recognizer = sr.Recognizer()
+
+        self.meta()
+        self.css()
+        self.sidebar() 
+        self.style()
+        self.conversation_layout()
+        self.converse()
     
-with st.sidebar:
-    openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
-    "[Get an OpenAI API key](https://platform.openai.com/account/api-keys)"
-    "[View the source code](https://github.com/SADidula/TDP_FAQ_Langchain_LLM_Bot/tree/main/models)"
-    "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)"
+    def meta(self):
+        st.set_page_config(
+            page_title="Swinburne FAQ chatbot",
+            page_icon="🧊",
+            layout="wide",
+            initial_sidebar_state="expanded",
+        )
+        
+    def css(self):
+        # Inject custom CSS to set the width of the sidebar
+        st.markdown(
+            """
+            <style>
+                .st-emotion-cache-6qob1r {
+                    border-top-right-radius: 10px;
+                    background-image: linear-gradient(#00c6cf33,#FFFFFF) !important;
+                    width: max-contents;
+                }
+                .st-emotion-cache-1v0mbdj img {
+                    border-radius: 35px !important;
+                }
+                .st-emotion-cache-1c7y2kd {
+                    background-color: #ffffff00 !important;
+                }
+                .st-emotion-cache-4oy321 {
+                    background-image: linear-gradient(#FFFFFF, #00c6cf33) !important;
+                }
+                .st-emotion-cache-1h9usn1 {
+                    background-color: #ffffff
+                }
+                .st-emotion-cache-q3uqly, .st-emotion-cache-nbt3vv{
+                    position: fixed;
+                    bottom: 110px;
+                    z-index:1;
+                }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+                             
+    def style(self):
+        self.user_input = st.chat_input("Please ask your question")  
+        if self.isSTT: 
+            st.button("🎙️ Record", use_container_width=False, type="primary", on_click=self.record_voice)  
     
-st.title("💬 Swinburne FAQ Chatbot")
-st.caption("🚀 your intellegent chatbot powered by OpenAI")
- 
-# URL for the logo of the assistant bot
-# We need it as a separate variable because it's used in multiple places
-# bot_logo = 'https://pbs.twimg.com/profile_images/1739538983112048640/4NzIg1h6_400x400.jpg'
-bot_logo = "images/assistant.jpeg"
-user_logo = "images/user.jpeg"
- 
-# We use st.session_state and fill in the st.session_state.messages list
-# It's empty in the beginning, so we add the first message from the bot
-if 'messages' not in st.session_state:
-    st.session_state['messages'] = [{"role": "bot",
-                                    "content": "Welcome to Swinburne University Online!\nLet me know if I can help with anything today."}]
-    st.session_state['recommendation_clicked'] = False
-    st.session_state['selected_recommendation'] = ""
-    
-# Then we show all the chat messages in Markdown format
-for message in st.session_state['messages']:
-    if message["role"] == 'bot':
-        with st.chat_message(message["role"], avatar=bot_logo):
-            st.markdown(message["content"])
-    elif message['role'] == 'user':
-        with st.chat_message(message["role"], avatar=user_logo):
-            st.markdown(message["content"])
+    def sidebar(self):    
+        with st.sidebar:
+            st.image("images/title.jpeg", width=200)
+            st.title("Welcome to Swinburne Frequently Asked Questions")
+            st.caption(":grey[Chat with a FAQ assistant, your intelligent AI powered by OpenAI]") 
+            st.divider()
             
-            # Sidebar button to end chat
-if st.sidebar.button("End Chat"):
-    st.sidebar.header("Feedback")
-    feedback = st.selectbox("Feedback", options=["👍", "👎"], key="feedback_thumbs")
-    submit_feedback = st.button("Submit Feedback")
-
-    if submit_feedback:
-        st.success("Thank you for your feedback!")
-        
-        # Submit feedback through trubric_emails
-        if "TRUBRICS_EMAIL" in st.secrets:
-            config = trubrics.init(
-                email=st.secrets.TRUBRICS_EMAIL,
-                password=st.secrets.TRUBRICS_PASSWORD,
-            )
-            collection = trubrics.collect(
-                component_name="default",
-                model="gpt",
-                response=feedback,
-                metadata={"chat": st.session_state.messages},
-            )
-            trubrics.save(config, collection)
-            st.toast("Feedback recorded!", icon="📝")
- 
-if query := st.chat_input("Please ask your question here:"):
-    st.session_state.messages.append({"role": "user", "content": query})
-    with st.chat_message("user", avatar=user_logo):
-        st.markdown(query)
-
-    with st.chat_message("assistant", avatar=bot_logo):
-        with st.spinner('Generating response....'):
-            result = bot.search(query)
-            typewriter(text=result, speed=100)
-
-        with st.spinner('Generating recommendations....'):
-            recommendations = bot.get_recommendations(query)
-            st.markdown("**Recommended Questions:**")
-            for rec in recommendations: 
-                if st.button(rec, on_click=on_recommendation_click, args=(rec,)):  # Create clickable button for each recommendation
-                    pass
-                
-        with st.spinner('Generating voice....'):
-            voice = bot.get_voice_response(response=result)
-            st.markdown("**Voice Answer:**")
-            st.audio(voice, format='audio/wav') 
-                  
-    st.session_state.messages.append({"role": "bot", "content": result})
-   
-# If a recommendation button is clicked, automatically send it as a new question and display response
-if st.session_state.recommendation_clicked:
-    original_question = st.session_state.messages[-1]["content"]
-    query = st.session_state.selected_recommendation
-    st.session_state.messages.append({"role": "user", "content": query})
+            popover = st.popover("Accessibility Options")
+            self.isRecommended = popover.toggle("Recommendations", value=False)
+            self.isTTS = popover.toggle("Text-To-Speech", value=False)
+            self.isSTT = popover.toggle("Speech-To-Text", value=False)
+            
+    def recommendation_layout(self):
+        with st.expander('Prompt Suggestions For You', expanded=False):
+            if len(self.recommendations) <= 0:
+                pass
+            else:
+                for recommend in self.recommendations:
+                    st.button(recommend, use_container_width=False, on_click=self.on_recommendation_click, args=(recommend,))  
+                    
+    def tts_layout(self, file: str):
+        with st.expander('Voice Response For You', expanded=False):
+            st.audio(file, format='audio/wav') 
+                    
+    def conversation_layout(self): 
+        if 'messages' not in st.session_state:
+            st.session_state['messages'] = [{"role": "bot",
+                                    "content": "Welcome to Swinburne University Online! Let me know if I can help with anything today."}]
+            
+        for message in st.session_state['messages']:
+            if message["role"] == 'bot':
+                with st.chat_message(message["role"], avatar=self.bot_logo):
+                    st.markdown(message["content"])
+            elif message['role'] == 'user':
+                with st.chat_message(message["role"], avatar=self.user_logo):
+                    st.markdown(message["content"])
     
-    with st.chat_message("user", avatar=user_logo):
-        st.markdown(query)
+    def converse(self):
+        if self.user_input:
+            st.session_state.messages.append({"role": "user", "content": self.user_input})
+            with st.chat_message("user", avatar=self.user_logo):
+                st.markdown(self.user_input)
 
-    with st.chat_message("assistant", avatar=bot_logo):
-        with st.spinner('Generating response....'):
-            result = bot.search(query)
-            typewriter(text=result, speed=100)
+            with st.chat_message("assistant", avatar=self.bot_logo):
+                self.generate_response()
 
-        with st.spinner('Generating recommendations....'):
-            recommendations = bot.get_recommendations(query)
-            st.markdown("**Recommended Questions:**")
-            for rec in recommendations: 
-                if st.button(rec, on_click=on_recommendation_click, args=(rec,)):  # Create clickable button for each recommendation
-                    pass
+                if self.isRecommended:
+                    self.generate_recommendations()                              
+
+                if self.isTTS:
+                    self.generate_voice_response()                                
                 
-        with st.spinner('Generating voice....'):
-            voice = bot.get_voice_response(response=result)
-            st.markdown("**Voice Answer:**")
-            st.audio(voice, format='audio/wav') 
-                  
-    st.session_state.messages.append({"role": "bot", "content": original_question})
-    st.session_state.messages.append({"role": "bot", "content": result}) 
-    st.session_state.recommendation_clicked = False  # Reset recommendation clicked state
+            st.session_state.messages.append({"role": "bot", "content": self.result})
+    
+    def converse_recommendation(self, recommendation: str):
+        st.session_state.messages.append({"role": "user", "content": recommendation})
+        with st.chat_message("user", avatar=self.user_logo):
+            st.markdown(recommendation)
+
+        with st.chat_message("assistant", avatar=self.bot_logo):
+            self.generate_response(recommendation)
+
+            if self.isRecommended:
+                self.generate_recommendations()                              
+
+            if self.isTTS:
+                self.generate_voice_response()                            
+                    
+        st.session_state.messages.append({"role": "bot", "content": self.result})            
+    
+    def typewriter(self, text: str, speed: int):
+        for word in text.split(" "):
+            yield word + " "
+            time.sleep(1/speed)
+    
+    def generate_response(self, recommendation: str = ''):
+        st.toast('Generating response...', icon="⏳")
+        self.result = bot.search(self.user_input + recommendation)
+        st.toast('Response Generated...', icon = "✅")
+        st.write_stream(self.typewriter(text=self.result, speed=35))
+        
+    def generate_recommendations(self):
+        st.toast('Generating recommendations...', icon="⏳")
+        self.recommendations = bot.get_recommendations(self.user_input)
+        st.toast('Recommendation Generated...', icon = "📋")
+        self.recommendation_layout()
+    
+    def generate_voice_response(self):
+        st.toast('Generating voice response...', icon="⏳")
+        voice = bot.get_voice_response(response=self.result)
+        st.toast('Generated...', icon = "🔉")
+        self.tts_layout(voice)
+        
+    # Function to handle recommendation button click
+    def on_recommendation_click(self, rec):
+        self.converse_recommendation(recommendation=rec)
+    
+    # def record_voice(self):
+    #     with sr.Microphone() as source:
+    #         self.recognizer.adjust_for_ambient_noise(source, duration=0.2)
+    #         audio = self.recognizer.listen(source)
+    #         rec_text = self.recognizer.recognize_google(audio)
+    #         st.toast(rec_text + ' recorded...', icon="✅")
+    #         st.toast('Generating response...', icon="⏳")
+    #         self.result = bot.search(rec_text)
+    #         st.toast('Response Generated...', icon = "✅")
+    #         with st.chat_message("assistant", avatar=self.bot_logo):
+    #             st.write_stream(self.typewriter(text=self.result, speed=35))
+    #         st.session_state.messages.append({"role": "bot", "content": self.result})
+            
+if "__main__":
+    GUI()

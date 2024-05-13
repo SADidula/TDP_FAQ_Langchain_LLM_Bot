@@ -39,6 +39,7 @@ class Brain:
             model='text-embedding-3-large',
             dimensions=3072,
         )
+                                
         self.document_search = FAISS.from_documents(all_splits, embeddings)
         
     def in_scope_search(self, question: str) -> str:
