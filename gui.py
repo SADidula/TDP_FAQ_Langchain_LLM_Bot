@@ -1,6 +1,7 @@
 import streamlit as st
 import time
 import main as bot
+import speech_recognition as sr
 
 class GUI:    
     def __init__(self) -> None: 
@@ -14,7 +15,7 @@ class GUI:
         self.bot_logo = "images/assistant.jpeg"
         self.user_logo = "images/user.jpeg"
 
-        # self.recognizer = sr.Recognizer()
+        self.recognizer = sr.Recognizer()
 
         self.meta()
         self.css()
@@ -136,7 +137,18 @@ class GUI:
             if self.isTTS:
                 self.generate_voice_response()                            
                     
-        st.session_state.messages.append({"role": "bot", "content": self.result})            
+        st.session_state.messages.append({"role": "bot", "content": self.result})       
+        
+    def converse_speech_to_text(self, question: str, response: str):
+        st.session_state.messages.append({"role": "user", "content": question})
+        with st.chat_message("user", avatar=self.user_logo):
+            st.markdown(question)
+
+        with st.chat_message("assistant", avatar=self.bot_logo):
+            self.write_text_to_speech(response)
+                                           
+        st.session_state.messages.append({"role": "bot", "content": response})       
+        
     
     def typewriter(self, text: str, speed: int):
         for word in text.split(" "):
@@ -160,23 +172,24 @@ class GUI:
         voice = bot.get_voice_response(response=self.result)
         st.toast('Generated...', icon = "🔉")
         self.tts_layout(voice)
+    
+    def write_text_to_speech(self, response):
+        st.write_stream(self.typewriter(text=response, speed=35))
         
     # Function to handle recommendation button click
     def on_recommendation_click(self, rec):
         self.converse_recommendation(recommendation=rec)
     
-    # def record_voice(self):
-    #     with sr.Microphone() as source:
-    #         self.recognizer.adjust_for_ambient_noise(source, duration=0.2)
-    #         audio = self.recognizer.listen(source)
-    #         rec_text = self.recognizer.recognize_google(audio)
-    #         st.toast(rec_text + ' recorded...', icon="✅")
-    #         st.toast('Generating response...', icon="⏳")
-    #         self.result = bot.search(rec_text)
-    #         st.toast('Response Generated...', icon = "✅")
-    #         with st.chat_message("assistant", avatar=self.bot_logo):
-    #             st.write_stream(self.typewriter(text=self.result, speed=35))
-    #         st.session_state.messages.append({"role": "bot", "content": self.result})
+    def record_voice(self):
+        with sr.Microphone() as source:
+            self.recognizer.adjust_for_ambient_noise(source, duration=0.2)
+            audio = self.recognizer.listen(source, 10, 3)
+            rec_text = self.recognizer.recognize_google(audio)
+            st.toast(rec_text + ' recorded...', icon="✅")
+            st.toast('Generating response...', icon="⏳")
+            result = bot.search(rec_text)
+            st.toast('Response Generated...', icon = "✅")
+            self.converse_speech_to_text(rec_text , result)
             
 if "__main__":
     GUI()
